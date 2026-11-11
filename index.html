@@ -248,6 +248,8 @@ body.playing .bnav { display: none !important; }
 .about-stats { display: flex; justify-content: center; gap: 22px; margin: 14px 0 4px; }
 .about-stats div { display: grid; font: 400 28px/1.2 var(--f-display); color: var(--yellow); }
 .about-stats span { font: 600 13px var(--f-body); color: var(--muted); }
+.about-site { display: grid; gap: 2px; justify-items: center; margin: 14px 0 0; font-weight: 600; color: var(--muted); }
+.about-site a { font: 700 16px/1.4 var(--f-body); color: var(--yellow); overflow-wrap: anywhere; }
 .splash { position: fixed; inset: 0; z-index: 100; display: grid; place-content: center; justify-items: center; gap: 10px; background: var(--night); transition: opacity .45s; }
 .splash.out { opacity: 0; pointer-events: none; }
 .splash-logo { display: flex; gap: .2em; font: 400 clamp(64px, 18vw, 120px)/1 var(--f-display); color: var(--paper); animation: popin .7s cubic-bezier(.2, .9, .3, 1.3) both; }
@@ -748,6 +750,7 @@ body.shake { animation: bigshake .6s; }
 .o-note { margin: 0; }
 .o-warn { padding: 12px 14px; border-radius: 14px; background: rgba(255, 77, 94, .12); border: 1px solid rgba(255, 77, 94, .5); color: var(--text); font-weight: 600; }
 .o-warn b { color: var(--bad); }
+.o-site { display: block; margin-top: 6px; color: var(--yellow); font-weight: 700; overflow-wrap: anywhere; }
 .o-hosthint { margin: 0; text-align: center; }
 .o-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
 .o-li { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: 16px; background: var(--night-2); border: 1px solid var(--line); }
@@ -6320,6 +6323,9 @@ button.o-ans { cursor: pointer; }
   const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const IN_APP = /TahadiElshellaApp/.test(navigator.userAgent || '');
   const CREDIT = 'DEVELOPED BY RAFAT HALEM';
+  // The hosted website (GitHub Pages, repo ROFFX99/tahadi-elshella, files = dist/web): friends without the app
+  // (iPhones) play and join rooms from here. Room invites link to SITE + '#r' + code.
+  const SITE = 'https://roffx99.github.io/tahadi-elshella/';
 
   // ---------- DOM helpers ----------
   function setProps(el, props) {
@@ -6991,6 +6997,8 @@ button.o-ans { cursor: pointer; }
         h('div', null, numEl(uniqueGames), h('span', null, 'لعبة')),
         h('div', null, numEl(LIB.CATS.length), h('span', null, 'مجال'))),
       h('div', { class: 'credit-badge big', dir: 'ltr', lang: 'en' }, CREDIT),
+      h('div', { class: 'about-site' }, h('span', null, 'الموقع، للي معاهوش التطبيق:'),
+        h('a', { href: SITE, target: IN_APP ? null : '_blank', rel: 'noopener', dir: 'ltr', lang: 'en' }, SITE.replace(/^https:\/\/|\/$/g, ''))),
       h('p', { class: 'hint' }, 'الأسئلة بتتسجل في جهازك عشان ما تتكررش، والنتيجة بتفضل محفوظة لحد ما تصفّروها.')), { wide: true });
   }
 
@@ -8608,7 +8616,7 @@ button.o-ans { cursor: pointer; }
     h, sv, clear, append, icon, AU, FX, toast, overlay, confirmBox, go, home, footer, app, flash, floatPts,
     useCtx: (ctx) => { if (cur) cur.ctx = ctx; }, setKey: (fn) => { keyFn = fn; },
     LIB, CAT, ALL_CATS, STATS, numEl, bigNum, nuqat, teamStyle, inkFor, gameStyle, COLORS, vibe, digit, onGo, usedSet, saveUsed,
-    pips, LETTERS, GUESS_ALL, isFootGuess, SPY_LISTS, FOOT_SPY, P, IN_APP, requestWake, releaseWake,
+    pips, LETTERS, GUESS_ALL, isFootGuess, SPY_LISTS, FOOT_SPY, P, IN_APP, SITE, requestWake, releaseWake,
   };
 
   // ---------- start ----------
@@ -9350,7 +9358,8 @@ button.o-ans { cursor: pointer; }
           h('div', { class: 'o-ways' },
             h('div', { class: 'o-way' }, h('h3', null, 'اعمل أوضة'), h('p', { class: 'hint' }, 'هيطلعلك كود من 5 أرقام تبعته للشلة، وانت اللي تختار الألعاب.'), make),
             h('div', { class: 'o-way' }, h('h3', null, 'ادخل أوضة'), h('p', { class: 'hint' }, 'اكتب الكود اللي صاحبك بعتهولك.'), join)),
-          lockedFrame() ? h('div', { class: 'o-warn' }, h('b', null, 'تنبيه: '), 'النسخة دي من الموقع مقفولة ومينفعش تكلّم سيرفرات برة، فاللعب الأونلاين غالبًا مش هيشتغل منها. العبوه من التطبيق، أو من نسخة الموقع اللي بتتثبّت.') : null,
+          lockedFrame() ? h('div', { class: 'o-warn' }, h('b', null, 'تنبيه: '), 'النسخة دي مقفولة ومينفعش تكلّم سيرفرات برة، فاللعب الأونلاين مش هيشتغل منها. العبوه من التطبيق، أو من الموقع ده:',
+            h('a', { class: 'o-site', href: U.SITE, target: '_blank', rel: 'noopener', dir: 'ltr', lang: 'en' }, U.SITE.replace(/^https:\/\/|\/$/g, ''))) : null,
           back ? h('div', { class: 'row-act center' }, back) : null,
           h('p', { class: 'hint o-note' }, 'محتاجين نت. لو بتلعبوا «الدخيل» من أماكن مختلفة اعملوا كول جماعي. الأوضة بتعدي على سيرفرات عامة مجانية، فما تكتبوش فيها أي حاجة خاصة.'))),
         h('section', { class: 'games' },
@@ -9484,11 +9493,16 @@ button.o-ans { cursor: pointer; }
     update(st0);
     return { el, update };
   }
+  // The invite: the code for friends with the app, and a link (the hosted site, join screen filled in) for the rest.
+  function inviteText(code) {
+    return 'تعالى العب معايا «تحدي الشلة» أونلاين!\nكود الأوضة: ' + code +
+      '\nمن التطبيق: ادخل على «أونلاين» واكتب الكود.\nمن غير التطبيق أو من الآيفون، افتح اللينك ده:\n' + U.SITE + '#r' + code;
+  }
   function shareRow(code) {
-    const text = 'تعالى العب معايا «تحدي الشلة» أونلاين! افتح التطبيق، ادخل على «أونلاين» واكتب كود الأوضة: ' + code;
+    const text = inviteText(code);
     return h('div', { class: 'row-act center o-share' },
-      h('a', { class: 'btn sm o-wa', href: 'https://wa.me/?text=' + encodeURIComponent(text), target: U.IN_APP ? null : '_blank', rel: 'noopener' }, icon('share'), 'ابعت الكود على واتساب'),
-      h('button', { class: 'btn ghost sm', onclick: () => copyText(code).then((ok) => toast(ok ? 'الكود اتنسخ' : 'الكود: ' + code)) }, icon('copy'), 'انسخ الكود'));
+      h('a', { class: 'btn sm o-wa', href: 'https://wa.me/?text=' + encodeURIComponent(text), target: U.IN_APP ? null : '_blank', rel: 'noopener' }, icon('share'), 'ابعت الدعوة على واتساب'),
+      h('button', { class: 'btn ghost sm', 'data-copy': '1', onclick: () => copyText(text).then((ok) => toast(ok ? 'الدعوة اتنسخت، ابعتها للشلة' : 'الكود: ' + code)) }, icon('copy'), 'انسخ الدعوة'));
   }
   async function copyText(t) {
     try { await navigator.clipboard.writeText(t); return true; } catch (e) { /* try the old way */ }
