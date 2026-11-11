@@ -1,5 +1,5 @@
-// Offline cache for تحدي الشلة (build mwcm5vlz).
-const CACHE = 'shella-mwcm5vlz';
+// Offline cache for تحدي الشلة (build mwco6i81).
+const CACHE = 'shella-mwco6i81';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim())); });
