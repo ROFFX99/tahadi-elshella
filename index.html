@@ -248,6 +248,14 @@ body.playing .bnav { display: none !important; }
 .about-stats { display: flex; justify-content: center; gap: 22px; margin: 14px 0 4px; }
 .about-stats div { display: grid; font: 400 28px/1.2 var(--f-display); color: var(--yellow); }
 .about-stats span { font: 600 13px var(--f-body); color: var(--muted); }
+.get-app { position: relative; display: grid; gap: 8px; padding: 18px 20px; margin: 0 0 22px; border-radius: 20px; background: linear-gradient(125deg, #1E3A2B, #1B2357 70%); border: 1px solid #2F7A55; }
+.get-t { font: 400 26px/1.2 var(--f-display); color: var(--paper); padding-inline-end: 34px; }
+.get-app .hint { margin: 0; }
+.get-app .row-act { margin: 4px 0 0; }
+.get-x { position: absolute; top: 10px; inset-inline-end: 10px; }
+.get-app a.btn, .about-get a.btn { text-decoration: none; }
+.about-get { margin-top: 10px; }
+.get-steps h2 { margin: 0 0 10px; font: 400 26px/1.2 var(--f-display); color: var(--paper); }
 .about-site { display: grid; gap: 2px; justify-items: center; margin: 14px 0 0; font-weight: 600; color: var(--muted); }
 .about-site a { font: 700 16px/1.4 var(--f-body); color: var(--yellow); overflow-wrap: anywhere; }
 .splash { position: fixed; inset: 0; z-index: 100; display: grid; place-content: center; justify-items: center; gap: 10px; background: var(--night); transition: opacity .45s; }
@@ -7721,7 +7729,8 @@ button.o-ans { cursor: pointer; }
         h('div', { class: 'row-act' },
           h('button', { class: 'btn', onclick: () => { S.seen = true; save(); playersView(); } }, 'يلا نكتب الأسامي'),
           h('button', { class: 'btn ghost sm', onclick: (e) => { S.seen = true; save(); e.currentTarget.closest('.welcome').remove(); } }, 'خلاص فهمت'))) : null;
-      app.append(
+      // The helper, not the native append: the welcome and download cards may be null (native append prints «null»).
+      append(app, [
         h('div', { class: 'top-row' },
           h('section', { class: 'hero' },
             h('p', { class: 'kicker' }, 'قعدة النهارده'),
@@ -7734,12 +7743,13 @@ button.o-ans { cursor: pointer; }
             h('div', { class: 'credit-badge', dir: 'ltr', lang: 'en' }, CREDIT)),
           playersStrip()),
         welcome,
+        getAppCard(),
         section('quiz'),
         footballBanner(),
         section('party'),
         onlineBanner(),
         libraryBanner(),
-        footer());
+        footer()]);
     }, 'home');
   }
   function footer() {
@@ -7769,6 +7779,37 @@ button.o-ans { cursor: pointer; }
       h('span', { class: 'tile-tags' },
         h('span', null, 'من ' + g.min + ' لـ 8'),
         h('span', null, 'حوالي ' + g.mins + ' دقيقة')));
+  }
+  // ---------- getting the game onto a phone (the website only) ----------
+  // Android: the app file, served next to the page (dist/web/tahadi-elshella.apk). iPhone: add to the home screen.
+  // Hidden inside the app, inside the claude.ai frame, and once the website runs installed (standalone).
+  const STANDALONE = (() => { try { return matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; } catch (e) { return false; } })();
+  const ON_SITE = !IN_APP && /^https?:$/.test(location.protocol) && window.self === window.top && !STANDALONE;
+  const IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const ANDROID = /Android/i.test(navigator.userAgent || '');
+  function iosSteps() {
+    overlay(h('div', { class: 'get-steps' },
+      h('h2', null, 'إزاي تنزّلها على الآيفون'),
+      h('ol', { class: 'steps' },
+        h('li', null, 'افتح الموقع من ', h('b', null, 'سفاري'), '.'),
+        h('li', null, 'دوس زرار ', h('b', null, 'المشاركة'), ' (المربع اللي طالع منه سهم لفوق).'),
+        h('li', null, 'اختار ', h('b', null, '«إضافة إلى الشاشة الرئيسية»'), ' وبعدين «إضافة».'),
+        h('li', null, 'هتلاقي اللعبة على الشاشة زي أي تطبيق.'))));
+  }
+  function getAppButtons() {
+    const apk = h('a', { class: 'btn', href: 'tahadi-elshella.apk', download: 'tahadi-elshella.apk', 'data-get': 'apk' }, icon('play'), 'نزّل تطبيق الأندرويد');
+    const ios = h('button', { class: 'btn' + (IOS ? '' : ' ghost'), 'data-get': 'ios', onclick: iosSteps }, 'على الآيفون');
+    return IOS ? [ios] : ANDROID ? [apk] : [apk, ios];
+  }
+  function getAppCard() {
+    if (!ON_SITE || S.hideGetApp) return null;
+    const card = h('section', { class: 'get-app' },
+      h('button', { class: 'x-btn get-x', 'aria-label': 'اقفل', onclick: () => { S.hideGetApp = true; save(); card.remove(); } }, '×'),
+      h('div', { class: 'get-t' }, 'نزّل اللعبة على موبايلك'),
+      h('p', { class: 'hint' }, IOS ? 'ضيفها للشاشة الرئيسية وهتفتح زي أي تطبيق، وتشتغل من غير نت (ما عدا الأونلاين).'
+        : 'تطبيق صغير بيفتح على طول ويشتغل من غير نت (ما عدا الأونلاين). لو الموبايل سألك، اسمح بتثبيت التطبيقات من المتصفح.'),
+      h('div', { class: 'row-act' }, getAppButtons()));
+    return card;
   }
   function footballBanner() {
     const fg = GAMES.filter((g) => g.sec === 'football');
@@ -7943,6 +7984,7 @@ button.o-ans { cursor: pointer; }
       h('div', { class: 'credit-badge big', dir: 'ltr', lang: 'en' }, CREDIT),
       h('div', { class: 'about-site' }, h('span', null, 'الموقع، للي معاهوش التطبيق:'),
         h('a', { href: SITE, target: IN_APP ? null : '_blank', rel: 'noopener', dir: 'ltr', lang: 'en' }, SITE.replace(/^https:\/\/|\/$/g, ''))),
+      ON_SITE ? h('div', { class: 'row-act center about-get' }, getAppButtons()) : null,
       h('p', { class: 'hint' }, 'الأسئلة بتتسجل في جهازك عشان ما تتكررش، والنتيجة بتفضل محفوظة لحد ما تصفّروها.')), { wide: true });
   }
 
