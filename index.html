@@ -817,6 +817,19 @@ body.shake { animation: bigshake .6s; }
 .tf-btn.chosen { outline: 4px solid var(--paper); outline-offset: 3px; }
 .tf-btn.dim, .tf-btn:disabled:not(.chosen) { opacity: .4; }
 .vote-btn.chosen { outline: 4px solid var(--paper); outline-offset: 3px; }
+/* online higher/lower, ordering, penalties */
+.o-hl { display: grid; gap: 12px; }
+.hl-btn.chosen { outline: 4px solid var(--paper); outline-offset: 3px; }
+.hl-btn.dim, .hl-btn:disabled:not(.chosen) { opacity: .4; }
+.o-ordwho { justify-content: center; }
+.o-duel { margin: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; font-weight: 700; color: var(--text); }
+.o-pkhint { margin: 0; text-align: center; }
+.o-dives { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; width: min(640px, 100%); justify-self: center; }
+.o-dives:empty { display: none; }
+.o-dive.chosen { outline: 4px solid var(--paper); outline-offset: 3px; }
+.o-dive:disabled:not(.chosen) { opacity: .4; }
+.pk-zone.chosen { background: rgba(255, 201, 40, .45); border-color: var(--yellow); }
+.o-pens .pk-board { margin-top: 4px; }
 .vote-btn:disabled:not(.chosen) { opacity: .45; cursor: default; }
 .chip.off { opacity: .45; }
 .chip.me { box-shadow: inset 0 0 0 2px var(--tc); }
@@ -7826,7 +7839,7 @@ button.o-ans { cursor: pointer; }
       h('div', { class: 'banner-text' },
         h('div', { class: 'banner-kicker' }, 'جديد: أونلاين'),
         h('h2', null, 'كل واحد من موبايله'),
-        h('p', null, 'مش قاعدين مع بعض؟ واحد يعمل أوضة ويبعت الكود للشلة، وكل واحد يلعب من موبايله: سباق أسئلة، صح ولا غلط، مسيرة لاعب، خمّن مين، مين فينا، الدخيل، وأتوبيس كومبليت.'),
+        h('p', null, 'مش قاعدين مع بعض؟ واحد يعمل أوضة ويبعت الكود للشلة، وكل واحد يلعب من موبايله: سباق أسئلة، صح ولا غلط، مسيرة لاعب، أعلى ولا أقل، رتّبهم، ضربات جزاء واحد قدام واحد، خمّن مين، مين فينا، الدخيل، وأتوبيس كومبليت.'),
         h('button', { class: 'btn', onclick: openOnline }, icon('online'), 'العبوا أونلاين')),
       h('div', { class: 'banner-art online-art', 'aria-hidden': 'true' }, [0, 1, 2, 3].map((i) => h('span', { style: { '--tc': COLORS[i] } }, icon('online')))));
   }
@@ -9810,7 +9823,7 @@ button.o-ans { cursor: pointer; }
   'use strict';
   const U = window.ShellaUI, N = window.ShellaNet, C = window.ShellaCore;
   if (!U || !N || !C) return;
-  const { h, clear, icon, AU, FX, toast, confirmBox, LIB, CAT, ALL_CATS, numEl, teamStyle, inkFor, COLORS, vibe, digit } = U;
+  const { h, sv, clear, icon, AU, FX, toast, confirmBox, LIB, CAT, ALL_CATS, numEl, teamStyle, inkFor, COLORS, vibe, digit } = U;
   const MAXP = 8;
   // Durations go through T(): the test harness speeds rooms up with window.__onlineSpeed.
   const speed = () => (window.__onlineSpeed > 0 ? window.__onlineSpeed : 1);
@@ -9844,6 +9857,15 @@ button.o-ans { cursor: pointer; }
     { id: 'career', name: 'مسيرة لاعب', icon: 'shirt', color: '#5BD15B', min: 1, host: careerHost,
       desc: 'أهم أندية لاعب بتظهر واحد ورا التاني. اللي يعرفه من أندية أقل ياخد نقط أكتر.',
       opts: [DIFF, COUNT(5, [3, 5, 8])] },
+    { id: 'hilo', name: 'أعلى ولا أقل', icon: 'hilo', color: '#2EC4B6', min: 1, host: hiloHost,
+      desc: 'حاجتين قدام الكل: الأولى رقمها باين والتانية مستخبي. أكتر ولا أقل؟ الصح بـ 5، والأسرع ياخد لحد 5 زيادة.',
+      opts: [{ key: 'mode', label: 'المجال', choices: ['all', 'foot', 'gen'], labels: { all: 'كله', foot: 'كورة', gen: 'معلومات عامة' }, def: 'all' }, DIFF, COUNT(10, [5, 10, 15])] },
+    { id: 'order', name: 'رتّبهم', icon: 'order', color: '#FF8A2A', min: 1, host: orderHost,
+      desc: 'نفس الأربع حاجات على كل الموبايلات، وكل واحد يرتّبهم على موبايله. كل واحدة في مكانها الصح بـ 5، والترتيب الكامل عليه 5 زيادة.',
+      opts: [DIFF, COUNT(5, [3, 5, 8]), { key: 'time', label: 'وقت الترتيب', choices: [20, 30, 45], def: 30, unit: 'ثانية' }] },
+    { id: 'pens', name: 'ضربات الجزاء', icon: 'goal', color: '#F0453A', min: 2, host: pensHost,
+      desc: 'واحد قدام واحد: اللي بيشوط يجاوب سؤال كورة، ولو صح يختار مكان الشوطة، والحارس يختار هيطير فين من موبايله. الجون بـ 10 للي شاط، والصدّة بـ 10 للحارس.',
+      opts: [DIFF, { key: 'rounds', label: 'شوط لكل لاعب', choices: [2, 3, 5], def: 3 }] },
     { id: 'guess', name: 'خمّن مين', icon: 'guess', color: '#3A6FF2', min: 1, host: guessHost,
       desc: 'دليل ورا دليل لحد ما تعرفوه. كل واحد يكتب تخمينه، واللي يعرف بدري ياخد نقط أكتر.',
       opts: [COUNT(3, [3, 5, 8]), { key: 'kind', label: 'النوع', choices: ['all', 'foot'], labels: { all: 'كله', foot: 'كورة بس' }, def: 'all' }] },
@@ -10025,12 +10047,14 @@ button.o-ans { cursor: pointer; }
     }
     commit(s);
   }
-  // Move on as soon as everyone who is online has answered (the spy game waits only for this round's players).
+  // Move on as soon as everyone who is online has answered. An engine can name who it waits for (the spy game: this
+  // round's players; penalties: only the shooter, then the shooter and the keeper).
   function maybeAllIn(s) {
     const g = s.hs.g;
     if (!g || !g.s || !s.eng || !s.eng.waits(g.s)) return;
-    const need = s.hs.players.filter((p) => p.on && (g.id !== 'spy' || (g.who || []).includes(p.id)));
-    if (!need.length || !need.every((p) => g.s.got.includes(p.id))) return;
+    const ids = s.eng.need ? s.eng.need(g.s) : s.hs.players.filter((p) => g.id !== 'spy' || (g.who || []).includes(p.id)).map((p) => p.id);
+    const need = ids.filter((id) => { const p = playerOf(s.hs, id); return p && p.on; });
+    if (!need.length || !need.every((id) => g.s.got.includes(id))) return;
     const sid = g.s.sid;
     clearTimeout(s.allT);
     s.allT = setTimeout(() => { if (s.alive && s.eng && s.hs.g && s.hs.g.s && s.hs.g.s.sid === sid) s.eng.timeout(); }, T(700));
@@ -10069,7 +10093,7 @@ button.o-ans { cursor: pointer; }
     g.n = items.length;
     if (!g.n) { toast('مفيش أسئلة كفاية'); return null; }
     let picks = {};
-    const pub = (it) => ({ q: it.q, opts: it.opts, cat: it.cat || null, d: it.d || 0, show: it.show || null, tile: it.tile || null, clubs: it.clubs || null, pos: it.pos || '', nat: it.nat || '', rev: it.rev || 0 });
+    const pub = (it) => ({ q: it.q, opts: it.opts, cat: it.cat || null, d: it.d || 0, show: it.show || null, tile: it.tile || null, clubs: it.clubs || null, pos: it.pos || '', nat: it.nat || '', rev: it.rev || 0, hl: it.hl || null });
     const eng = {
       waits: (st) => st.kind === 'ask',
       act(pid, a) {
@@ -10126,6 +10150,131 @@ button.o-ans { cursor: pointer; }
     U.saveUsed();
     // Two clubs at first, one more every 5 seconds: 40 points from two clubs, 10 less for each extra club.
     return qEngine(s, items, { time: 32000, pts: (ms, dl, it) => Math.max(10, 40 - (Math.min(it.clubs.length, 2 + Math.floor(ms / it.rev)) - 2) * 10) });
+  }
+  // Higher or lower, everyone on the same pair: chains of five from one pool (the hidden one becomes the known one),
+  // then the next pool.
+  function hiloHost(s, o) {
+    const pools = C.shuffle(LIB.hl.filter((p) => (o.mode === 'foot' ? p.football : o.mode === 'gen' ? !p.football : true) && p.items.length >= 6));
+    if (!pools.length) { toast('مفيش بيانات كفاية للعبة دي'); return null; }
+    const val = (pool, x) => (pool.unit === 'n' ? String(x.v) : C.fmtValue(pool.unit, x.v));
+    const items = [];
+    let pool = null, a = null;
+    for (let i = 0, tries = 0; items.length < o.count && tries < o.count * 4; tries++) {
+      if (!a || i % 5 === 0) { pool = pools[Math.floor(i / 5) % pools.length]; a = C.pick(pool.items); }
+      const b = LIB.hlNext(pool, a, lvl(o));
+      if (!b) { a = null; continue; }
+      items.push({ q: b.label + ' ' + pool.q + ' ' + a.label + '؟', opts: [pool.up, pool.down], ans: b.v > a.v ? 0 : 1,
+        hl: { name: pool.name, a: a.label, av: val(pool, a), b: b.label, bv: val(pool, b) } });
+      a = b; i++;
+    }
+    return qEngine(s, items, { time: 10000, pts: (ms, dl) => 5 + Math.round(5 * Math.max(0, 1 - ms / dl)) });
+  }
+  // Ordering, everyone on the same four things: each player taps them in order on his phone and sends.
+  // 5 for each one in its right place, 5 more for the whole order (as in the local game).
+  function orderHost(s, o) {
+    const g = s.hs.g;
+    const sets = LIB.orderSets.filter((x) => x.items.length >= 4);
+    const fmt = (set, v) => (set.fmt ? C.fmtValue(set.fmt, v) : String(v));
+    const items = [];
+    for (let i = 0; i < o.count; i++) {
+      let pk = null, set = null;
+      for (let k = 0; k < 8 && !pk; k++) { set = sets[C.drawIndex(sets.length, U.usedSet('order'), 'o')]; pk = LIB.pickOrder(set, 4, lvl(o)); }
+      if (pk) items.push({ ask: set.ask, lo: set.lo, hi: set.hi, shown: pk.shown.map((x) => x.label), right: pk.correct.map((x) => x.label), vals: pk.correct.map((x) => fmt(set, x.value)), d: pk.d });
+    }
+    U.saveUsed();
+    g.n = items.length;
+    if (!g.n) { toast('مفيش أسئلة كفاية'); return null; }
+    let picks = {};
+    const eng = {
+      waits: (st) => st.kind === 'order',
+      act(pid, a) {
+        const st = g.s, it = items[g.i];
+        if (st.kind !== 'order' || a.k !== 'ord' || pid in picks || !Array.isArray(a.v)) return;
+        const v = a.v.filter((x) => Number.isInteger(x) && x >= 0 && x < 4);
+        if (v.length !== 4 || new Set(v).size !== 4) return;
+        picks[pid] = v.map((x) => it.shown[x]);
+        st.got.push(pid);
+        commit(s); maybeAllIn(s);
+      },
+      timeout() { if (g.s.kind === 'order') reveal(); else next(); },
+      skip() { if (g.s.kind === 'oreveal') next(); },
+    };
+    function ask() { picks = {}; const it = items[g.i]; setStep(s, 'order', { ask: it.ask, lo: it.lo, hi: it.hi, shown: it.shown, d: it.d, i: g.i }, o.time * 1000); }
+    function reveal() {
+      const it = items[g.i], pts = {}, rights = {};
+      for (const pid in picks) {
+        const r = C.scoreOrder(it.right.map((label) => ({ label })), picks[pid].map((label) => ({ label })));
+        rights[pid] = r.right; pts[pid] = r.pts; addPts(s, pid, r.pts);
+      }
+      setStep(s, 'oreveal', { ask: it.ask, right: it.right, vals: it.vals, picks: Object.assign({}, picks), rights, pts, i: g.i }, 7000);
+    }
+    function next() { g.i++; if (g.i >= g.n) return endGame(s); ask(); }
+    g.i = 0;
+    ask();
+    return eng;
+  }
+  // Penalties, one against one. Each turn a shooter and a keeper (the next player in the room): the shooter answers a
+  // football question; right, he picks one of six spots while the keeper picks a side, each on his own phone, neither
+  // seeing the other. Same side: saved (a high corner only half the time). Goal: 10 to the shooter, save: 10 to the keeper.
+  function pensHost(s, o) {
+    const g = s.hs.g;
+    const ids = s.hs.players.filter((p) => p.on).map((p) => p.id);
+    if (ids.length < 2) { toast('محتاجين لاعيبة اتنين على الأقل'); return null; }
+    g.who = ids.slice();
+    g.n = ids.length * o.rounds;
+    g.kicks = {};
+    ids.forEach((id) => { g.kicks[id] = []; });
+    const on = (id) => { const p = playerOf(s.hs, id); return !!(p && p.on); };
+    let turn = -1, shooter = null, keeper = null, q = null, picked = null, aim = null, dive = null;
+    const eng = {
+      waits: (st) => st.kind === 'pq' || st.kind === 'aim',
+      need: (st) => (st.kind === 'pq' ? [st.shooter] : [st.shooter, st.keeper]),
+      act(pid, a) {
+        const st = g.s, ok = (n) => Number.isInteger(a.v) && a.v >= 0 && a.v < n;
+        if (st.kind === 'pq' && a.k === 'ans' && pid === shooter && picked == null && ok(4)) picked = a.v;
+        else if (st.kind === 'aim' && a.k === 'aim' && pid === shooter && aim == null && ok(6)) aim = a.v;
+        else if (st.kind === 'aim' && a.k === 'dive' && pid === keeper && dive == null && ok(3)) dive = a.v;
+        else return;
+        st.got.push(pid);
+        commit(s); maybeAllIn(s);
+      },
+      timeout() {
+        const k = g.s.kind;
+        if (k === 'pq') { if (picked === q.ans) setStep(s, 'aim', { shooter, keeper, i: turn }, 9000); else kick(-1, 1); }
+        else if (k === 'aim') kick(aim == null ? C.ri(6) : aim, dive == null ? C.ri(3) : dive);
+        else nextTurn();
+      },
+      skip() { if (g.s.kind === 'kick') nextTurn(); },
+    };
+    const pubQ = () => ({ q: q.q, opts: q.opts, cat: q.cat, d: q.d });
+    function nextTurn() {
+      while (++turn < g.n) {
+        const sh = ids[turn % ids.length];
+        if (!on(sh)) continue; // away: this kick is lost
+        let kp = null;
+        for (let j = 1; j < ids.length && !kp; j++) { const c = ids[(turn + j) % ids.length]; if (on(c)) kp = c; }
+        if (!kp) break;
+        shooter = sh; keeper = kp; picked = null; aim = null; dive = null;
+        g.i = turn;
+        q = LIB.draw(U.usedSet('q'), ['football'], lvl(o));
+        U.saveUsed();
+        if (!q) break;
+        setStep(s, 'pq', { shooter, keeper, q: pubQ(), i: turn }, 15000);
+        return;
+      }
+      endGame(s);
+    }
+    function kick(zone, kcol) {
+      const miss = zone < 0, col = miss ? 1 : zone % 3, row = miss ? -1 : Math.floor(zone / 3);
+      const saved = !miss && kcol === col && (row === 1 || Math.random() < 0.5);
+      const goal = !miss && !saved;
+      g.kicks[shooter].push(goal ? 1 : 0);
+      if (goal) addPts(s, shooter, 10);
+      if (saved) addPts(s, keeper, 10);
+      setStep(s, 'kick', { shooter, keeper, q: pubQ(), ans: q.ans, pick: picked, zone, kcol, miss, saved, goal, i: turn }, 4500);
+    }
+    nextTurn();
+    return g.s ? eng : null;
   }
   function guessHost(s, o) {
     const g = s.hs.g;
@@ -10589,7 +10738,17 @@ button.o-ans { cursor: pointer; }
     if (g.id === 'bus') return busView(s, st);
     if (g.id === 'guess') return g.s.kind === 'ask' ? guessAsk(s, st) : guessReveal(s, st);
     if (g.id === 'who') return g.s.kind === 'vote' ? whoVote(s, st) : whoReveal(s, st);
+    if (g.id === 'order') return g.s.kind === 'order' ? orderAsk(s, st) : orderReveal(s, st);
+    if (g.id === 'pens') return pensView(s, st);
     return g.s.kind === 'ask' ? askView(s, st) : revealView(s, st);
+  }
+  // Higher / lower: the known card and the hidden one (open after the answer).
+  function hlCards(hl, open, mark) {
+    return h('div', { class: 'hl-cards' },
+      h('div', { class: 'hl-card known' }, h('div', { class: 'hl-label' }, hl.a), h('div', { class: 'hl-val' }, h('bdi', { dir: 'ltr' }, hl.av))),
+      h('div', { class: 'hl-vs' }, 'ضد'),
+      h('div', { class: 'hl-card hidden' + (open && mark ? ' ' + mark : '') }, h('div', { class: 'hl-label' }, hl.b),
+        h('div', { class: 'hl-val' + (open ? '' : ' q') }, open ? h('bdi', { dir: 'ltr' }, hl.bv) : '؟')));
   }
   function clubsPath(clubs, shown) {
     const path = h('div', { class: 'cp-path' });
@@ -10601,16 +10760,18 @@ button.o-ans { cursor: pointer; }
   }
   function askView(s, st) {
     const g = st.g, S0 = g.s, q = S0.q, sid = S0.sid;
-    const isTF = g.id === 'tf', isCareer = g.id === 'career';
+    const isTF = g.id === 'tf', isCareer = g.id === 'career', isHilo = g.id === 'hilo';
     const status = h('span', { class: 'o-status' });
     let picked = s.mine[sid];
     const tb = timebar(S0, () => { if (picked == null) { lock(-1); paintStatus(cur(s)); } });
     const btns = q.opts.map((o, i) => (isTF
       ? h('button', { class: 'tf-btn ' + (i === 0 ? 'yes' : 'no'), 'data-ans': String(i), onclick: () => pick(i) }, h('span', { class: 'tf-big' }, o))
-      : h('button', { class: 'opt', 'data-ans': String(i), onclick: () => pick(i) }, h('span', { class: 'opt-k' }, U.LETTERS[i]), h('span', { class: 'opt-t', dir: 'auto' }, o))));
+      : isHilo ? h('button', { class: 'hl-btn ' + (i === 0 ? 'up' : 'down'), 'data-ans': String(i), onclick: () => pick(i) }, h('span', null, o))
+        : h('button', { class: 'opt', 'data-ans': String(i), onclick: () => pick(i) }, h('span', { class: 'opt-k' }, U.LETTERS[i]), h('span', { class: 'opt-t', dir: 'auto' }, o))));
     const path = isCareer ? h('div') : null;
     let card;
     if (isTF) card = h('div', { class: 'tf-card in' }, h('div', { class: 'tf-text' }, q.q));
+    else if (isHilo) card = h('div', { class: 'o-hl' }, hlCards(q.hl, false), h('p', { class: 'hl-q' }, q.q), h('div', { class: 'hl-btns' }, btns));
     else {
       const c = CAT[q.cat];
       card = h('div', { class: 'qcard' },
@@ -10621,8 +10782,10 @@ button.o-ans { cursor: pointer; }
           : q.show ? h('div', { class: 'q-show', dir: 'ltr' }, q.show) : null,
         h('h2', { class: 'q-text' }, q.q), path, h('div', { class: 'opts' }, btns));
     }
-    const el = h('div', { class: isTF ? 'tf-wrap o-ask' : 'q-wrap o-ask' },
-      h('div', { class: 'q-top' }, roundLabel(g, isTF ? 'جملة' : isCareer ? 'لاعب' : 'سؤال'), status, tb.el), card, isTF ? h('div', { class: 'tf-btns' }, btns) : null);
+    const el = h('div', { class: isTF ? 'tf-wrap o-ask' : isHilo ? 'hl-wrap o-ask' : 'q-wrap o-ask' },
+      h('div', { class: 'q-top' }, roundLabel(g, isTF ? 'جملة' : isCareer ? 'لاعب' : 'سؤال'),
+        isHilo ? h('span', { class: 'cat-chip', style: { '--cc': '#2EC4B6', '--ci': '#1B1422' } }, q.hl.name) : null, status, tb.el),
+      card, isTF ? h('div', { class: 'tf-btns' }, btns) : null);
     function lock(chosen) { btns.forEach((b, k) => { b.disabled = true; b.classList.add(k === chosen ? 'chosen' : 'dim'); }); }
     function pick(i) {
       if (picked != null || tb.left() <= 0) return;
@@ -10654,27 +10817,195 @@ button.o-ans { cursor: pointer; }
       if (d >= 1 && d <= q.opts.length) pick(d - 1);
       else if (isTF && e.key === 'ArrowRight') pick(0);
       else if (isTF && e.key === 'ArrowLeft') pick(1);
+      else if (isHilo && (e.key === 'ArrowUp' || e.key === 'ArrowRight')) { e.preventDefault(); pick(0); }
+      else if (isHilo && (e.key === 'ArrowDown' || e.key === 'ArrowLeft')) { e.preventDefault(); pick(1); }
     });
     paintStatus(st);
     return { el, update: paintStatus };
   }
   function revealView(s, st) {
-    const g = st.g, S0 = g.s, q = S0.q, isTF = g.id === 'tf', isCareer = g.id === 'career';
+    const g = st.g, S0 = g.s, q = S0.q, isTF = g.id === 'tf', isCareer = g.id === 'career', isHilo = g.id === 'hilo';
     const mine = S0.picks[ME.pid], right = mine != null && mine === S0.ans, myPts = S0.pts[ME.pid] || 0;
     if (!s.played[S0.sid]) { s.played[S0.sid] = 1; AU.play(mine == null ? 'end' : right ? 'good' : 'bad'); if (right) vibe(20); }
     const rows = q.opts.map((o, i) => h('div', { class: 'o-rrow' + (i === S0.ans ? ' right' : i === mine ? ' wrong' : '') },
-      h('div', { class: 'o-ropt' }, isTF ? null : h('span', { class: 'opt-k' }, U.LETTERS[i]), h('span', { class: 'opt-t', dir: 'auto' }, o), i === S0.ans ? h('span', { class: 'o-check', 'aria-label': 'الإجابة الصح' }, '✓') : null),
+      h('div', { class: 'o-ropt' }, isTF || isHilo ? null : h('span', { class: 'opt-k' }, U.LETTERS[i]), h('span', { class: 'opt-t', dir: 'auto' }, o), i === S0.ans ? h('span', { class: 'o-check', 'aria-label': 'الإجابة الصح' }, '✓') : null),
       h('div', { class: 'o-whos' }, st.players.filter((p) => S0.picks[p.id] === i).map((p) => whoPill(p, S0.pts[p.id] ? '+' + S0.pts[p.id] : null)))));
     const res = h('span', { class: 'o-res ' + (right ? 'ok' : 'no') }, mine == null ? 'ما لحقتش تجاوب' : right ? ['صح! ', numEl(myPts, true)] : 'غلط');
-    const el = h('div', { class: (isTF ? 'tf-wrap' : 'q-wrap') + ' o-reveal' },
+    const el = h('div', { class: (isTF ? 'tf-wrap' : isHilo ? 'hl-wrap' : 'q-wrap') + ' o-reveal' },
       h('div', { class: 'q-top' }, roundLabel(g, isTF ? 'جملة' : isCareer ? 'لاعب' : 'سؤال'), res),
+      isHilo ? hlCards(q.hl, true, mine == null ? '' : right ? 'good' : 'bad') : null,
       h('div', { class: 'qcard' },
         h('h2', { class: 'q-text' }, isCareer ? 'ده كان ' + (S0.who || '') : q.q),
         isCareer ? clubsPath(q.clubs, q.clubs.length) : null,
-        h('div', { class: 'o-rrows' + (isTF ? ' two' : '') }, rows),
+        h('div', { class: 'o-rrows' + (isTF || isHilo ? ' two' : '') }, rows),
         isTF && S0.fix ? h('p', { class: 'explain o-fix' }, S0.fix) : null),
       nextBar(s, S0, g.s.i + 1 >= g.n ? 'النتيجة كمان شوية' : null));
     if (right) setTimeout(() => FX.burst(res, [playerOf(st, ME.pid).color, '#FFC928'], 40), 60);
+    return { el };
+  }
+  // Ordering: tap the four in order (tap again to take one back), then send. Each phone keeps its own taps.
+  function orderAsk(s, st) {
+    const g = st.g, S0 = g.s, sid = S0.sid;
+    const status = h('span', { class: 'o-status' });
+    let sent = s.mine[sid] || null;
+    const picks = sent ? sent.slice() : [];
+    const tb = timebar(S0, () => { lockAll(); paintStatus(cur(s)); });
+    const cards = S0.shown.map((label, i) => h('button', { class: 'ord-card', 'data-ord': String(i), onclick: () => tap(i) },
+      h('span', { class: 'ord-badge' }), h('span', { class: 'ord-label' }, label)));
+    const send = h('button', { class: 'btn big', 'data-send': '1', onclick: submit }, 'ثبّت الترتيب');
+    const el = h('div', { class: 'ord-wrap o-ask' },
+      h('div', { class: 'q-top' }, roundLabel(g, 'جولة'), S0.d ? U.pips(S0.d) : null, status, tb.el),
+      h('h2', { class: 'ask' }, S0.ask),
+      h('div', { class: 'ord-scale' }, h('span', null, numEl(1), ' = ' + S0.lo), h('span', null, numEl(4), ' = ' + S0.hi)),
+      h('div', { class: 'ord-grid' }, cards), send);
+    function paint() {
+      cards.forEach((c, i) => { const k = picks.indexOf(i); c.classList.toggle('on', k >= 0); c.firstChild.textContent = k >= 0 ? String(k + 1) : ''; });
+      send.disabled = !!sent || picks.length !== 4 || tb.left() <= 0;
+    }
+    function tap(i) {
+      if (sent || tb.left() <= 0) return;
+      const k = picks.indexOf(i);
+      if (k >= 0) picks.splice(k, 1); else picks.push(i);
+      AU.play('click'); paint();
+    }
+    function submit() {
+      if (sent || picks.length !== 4 || tb.left() <= 0) return;
+      sent = s.mine[sid] = picks.slice();
+      AU.play('pop'); vibe(15);
+      lockAll();
+      act({ k: 'ord', sid, v: sent, ms: Math.round(tb.elapsed()) });
+      paintStatus(cur(s));
+    }
+    function lockAll() { cards.forEach((c) => { c.disabled = true; }); send.disabled = true; }
+    function paintStatus(st2) {
+      const S2 = st2.g && st2.g.s;
+      const n = S2 && S2.sid === sid ? S2.got.length : 0, tot = onlineCount(st2);
+      clear(status).append(sent ? 'رتّبت! ' : tb.left() <= 0 ? 'الوقت خلص. ' : '', 'خلّص ', numEl(n), ' من ', numEl(tot));
+    }
+    paint();
+    if (sent) lockAll();
+    U.setKey((e) => { const d = digit(e); if (d >= 1 && d <= 4) tap(d - 1); else if (e.key === 'Enter') submit(); });
+    paintStatus(st);
+    return { el, update: paintStatus };
+  }
+  function orderReveal(s, st) {
+    const g = st.g, S0 = g.s;
+    const mine = S0.picks[ME.pid], myPts = S0.pts[ME.pid] || 0, myRight = S0.rights[ME.pid] || 0;
+    if (!s.played[S0.sid]) { s.played[S0.sid] = 1; AU.play(!mine ? 'end' : myRight === 4 ? 'good' : myRight ? 'pop' : 'bad'); if (myRight === 4) vibe(20); }
+    const list = S0.right.map((label, k) => h('div', { class: 'ord-card' + (mine ? (mine[k] === label ? ' right' : ' wrong') : '') },
+      h('span', { class: 'ord-badge' }, String(k + 1)), h('span', { class: 'ord-label' }, label), h('span', { class: 'ord-val' }, h('bdi', { dir: 'ltr' }, S0.vals[k]))));
+    const res = h('span', { class: 'o-res ' + (myPts ? 'ok' : 'no') }, !mine ? 'ما لحقتش ترتّب' : myRight === 4 ? ['كله صح! ', numEl(myPts, true)] : [numEl(myRight), ' في مكانهم الصح', myPts ? [' ', numEl(myPts, true)] : '']);
+    const whos = h('div', { class: 'o-whos o-ordwho' }, st.players.filter((p) => S0.picks[p.id]).map((p) => whoPill(p, '+' + (S0.pts[p.id] || 0))));
+    const el = h('div', { class: 'ord-wrap o-reveal' },
+      h('div', { class: 'q-top' }, roundLabel(g, 'جولة'), res),
+      h('h2', { class: 'ask' }, S0.ask),
+      h('div', { class: 'ord-grid' }, list), whos,
+      nextBar(s, S0, g.s.i + 1 >= g.n ? 'النتيجة كمان شوية' : null));
+    if (myRight === 4) setTimeout(() => FX.burst(res, [playerOf(st, ME.pid).color, '#FFC928'], 40), 60);
+    return { el };
+  }
+
+  // Penalties: a question for the shooter, then both pick (spot and side), then the kick everyone watches.
+  const SPOTS = ['فوق شمال', 'فوق النص', 'فوق يمين', 'تحت شمال', 'تحت النص', 'تحت يمين'];
+  const SIDES = ['شمال', 'النص', 'يمين'];
+  function goalBox() {
+    const keeper = h('div', { class: 'pk-keeper' }, sv('svg', { viewBox: '0 0 60 60', 'aria-hidden': 'true' },
+      sv('circle', { cx: 30, cy: 12, r: 8, class: 'kp-head' }),
+      sv('rect', { x: 20, y: 20, width: 20, height: 24, rx: 6, class: 'kp-body' }),
+      sv('path', { d: 'M20 24L6 14M40 24l14-10M24 44l-4 14M36 44l4 14', class: 'kp-arm' }),
+      sv('circle', { cx: 6, cy: 14, r: 4, class: 'kp-glove' }), sv('circle', { cx: 54, cy: 14, r: 4, class: 'kp-glove' })));
+    const ball = h('div', { class: 'pk-ball' });
+    const zones = h('div', { class: 'pk-zones' });
+    return { box: h('div', { class: 'pk-goal', dir: 'ltr' }, h('div', { class: 'pk-net' }), keeper, ball, zones), keeper, ball, zones };
+  }
+  function kicksBoard(st) {
+    const g = st.g;
+    return h('div', { class: 'pk-board' }, (g.who || []).map((id) => {
+      const p = playerOf(st, id), k = (g.kicks && g.kicks[id]) || [];
+      return p ? h('div', { class: 'pk-row' + (p.on ? '' : ' out'), style: teamStyle(p) }, h('span', { class: 'pk-name' }, p.name),
+        h('span', { class: 'pk-dots' }, k.map((x) => h('span', { class: 'pk-dot ' + (x ? 'in' : 'miss') }))), h('span', { class: 'pk-sum' }, numEl(k.filter(Boolean).length))) : null;
+    }));
+  }
+  function pensView(s, st) {
+    const g = st.g, S0 = g.s, sid = S0.sid;
+    const sh = playerOf(st, S0.shooter) || { name: '؟', color: COLORS[0] }, kp = playerOf(st, S0.keeper) || { name: '؟', color: COLORS[1] };
+    const meShoot = S0.shooter === ME.pid, meKeep = S0.keeper === ME.pid;
+    const duel = h('p', { class: 'o-duel' }, whoPill(sh), ' بيشوط قدام الحارس ', whoPill(kp));
+    const top = (extra) => h('div', { class: 'q-top' }, roundLabel(g, 'شوطة'), extra || null);
+    if (S0.kind === 'pq') {
+      const tb = timebar(S0);
+      let picked = s.mine[sid];
+      const btns = S0.q.opts.map((o, i) => h('button', meShoot ? { class: 'opt', 'data-ans': String(i), onclick: () => pick(i) } : { class: 'opt', disabled: true },
+        h('span', { class: 'opt-k' }, U.LETTERS[i]), h('span', { class: 'opt-t', dir: 'auto' }, o)));
+      const c = CAT[S0.q.cat];
+      const card = h('div', { class: 'qcard' },
+        h('div', { class: 'q-meta' }, c ? h('span', { class: 'cat-chip', style: { '--cc': c.color, '--ci': inkFor(c.color) } }, c.name) : null, S0.q.d ? U.pips(S0.q.d) : null),
+        h('h2', { class: 'q-text' }, S0.q.q), h('div', { class: 'opts' }, btns));
+      const hint = h('p', { class: 'turn-sub o-pkhint' }, meShoot ? 'جاوب صح عشان تشوط!' : meKeep ? 'استعد يا حارس: لو ' + sh.name + ' جاوب صح هتختار هتطير فين.' : 'استنوا ' + sh.name + ' يجاوب.');
+      function pick(i) {
+        if (picked != null || tb.left() <= 0) return;
+        picked = s.mine[sid] = i;
+        AU.play('pop'); vibe(15);
+        btns.forEach((b, k) => { b.disabled = true; b.classList.add(k === i ? 'chosen' : 'dim'); });
+        act({ k: 'ans', sid, v: i, ms: Math.round(tb.elapsed()) });
+      }
+      if (meShoot && picked != null) btns.forEach((b, k) => { b.disabled = true; b.classList.add(k === picked ? 'chosen' : 'dim'); });
+      if (meShoot) U.setKey((e) => { const d = digit(e); if (d >= 1 && d <= 4) pick(d - 1); });
+      return { el: h('div', { class: 'q-wrap o-ask o-pens' }, top(tb.el), duel, hint, card, kicksBoard(st)) };
+    }
+    const G = goalBox();
+    if (S0.kind === 'aim') {
+      const tb = timebar(S0);
+      let mine = s.mine[sid];
+      const hint = h('p', { class: 'turn-sub o-pkhint' });
+      const dives = h('div', { class: 'o-dives', dir: 'ltr' });
+      // The shooter gets the six spots on the goal, the keeper three sides under it; everyone else watches.
+      const role = meShoot ? { k: 'aim', names: SPOTS, wait: 'تمام، مستنيين الحارس…', ask: 'اختار تشوط فين. الحارس بيختار في نفس الوقت ومش شايفك.' }
+        : meKeep ? { k: 'dive', names: SIDES, wait: 'تمام، مستنيين الشوطة…', ask: 'اختار هتطير فين. ' + sh.name + ' بيختار مكان الشوطة في نفس الوقت.' } : null;
+      if (role) {
+        const btns = role.names.map((name, v) => h('button', meShoot ? { class: 'pk-zone', 'data-aim': String(v), 'aria-label': name, onclick: () => choose(v) }
+          : { class: 'btn o-dive', 'data-dive': String(v), onclick: () => choose(v) }, meShoot ? null : name));
+        btns.forEach((b) => (meShoot ? G.zones : dives).append(b));
+        const lockIt = (v) => btns.forEach((b, k) => { b.disabled = true; b.classList.toggle('chosen', k === v); });
+        const choose = (v) => {
+          if (mine != null || tb.left() <= 0) return;
+          mine = s.mine[sid] = v;
+          AU.play('pop'); vibe(15); lockIt(v);
+          hint.textContent = role.wait;
+          act({ k: role.k, sid, v });
+        };
+        hint.textContent = role.ask;
+        if (mine != null) { lockIt(mine); hint.textContent = role.wait; }
+      } else hint.textContent = sh.name + ' جاوب صح! دلوقتي بيختار مكان الشوطة، و' + kp.name + ' بيختار هيطير فين.';
+      return { el: h('div', { class: 'q-wrap o-ask o-pens' }, top(tb.el), duel, hint, G.box, dives, kicksBoard(st)) };
+    }
+    // the kick
+    const col = S0.miss ? -1 : S0.zone % 3, row = S0.miss ? -1 : Math.floor(S0.zone / 3);
+    const msg = S0.miss ? 'الإجابة كانت غلط، والشوطة طلعت بره' : S0.saved ? 'الحارس ' + kp.name + ' صدها!' : 'جوووون! ' + sh.name + ' جاب جون';
+    const after = h('div', { class: 'after ' + (S0.goal ? 'ok' : 'no') }, h('span', { class: 'after-msg' }, msg));
+    const fix = S0.miss ? h('p', { class: 'explain' }, 'الإجابة الصح: ' + S0.q.opts[S0.ans]) : null;
+    const el = h('div', { class: 'q-wrap o-reveal o-pens' }, top(), duel, G.box, after, fix, kicksBoard(st),
+      nextBar(s, S0, g.s.i + 1 >= g.n ? 'النتيجة كمان شوية' : null));
+    if (!s.played[sid]) {
+      s.played[sid] = 1;
+      setTimeout(() => {
+        AU.play('kick');
+        if (!S0.miss) { G.keeper.style.left = [17, 50, 83][S0.kcol] + '%'; G.keeper.classList.add(S0.kcol === 0 ? 'to-left' : S0.kcol === 2 ? 'to-right' : 'stay'); }
+        G.ball.style.left = (S0.miss ? 50 + (sid % 2 ? 30 : -30) : [17, 50, 83][col]) + '%';
+        G.ball.style.top = (S0.miss ? -18 : row === 0 ? 26 : 70) + '%';
+        G.ball.classList.add('shot');
+        setTimeout(() => {
+          const mineWin = (S0.goal && meShoot) || (S0.saved && meKeep);
+          AU.play(S0.goal ? 'crowd' : 'bad');
+          if (mineWin) { vibe(30); FX.burst(G.box, [playerOf(st, ME.pid).color, '#FFF3DE'], 60); }
+        }, 700);
+      }, 150);
+    } else {
+      if (!S0.miss) { G.keeper.style.left = [17, 50, 83][S0.kcol] + '%'; G.keeper.classList.add(S0.kcol === 0 ? 'to-left' : S0.kcol === 2 ? 'to-right' : 'stay'); }
+      G.ball.style.left = (S0.miss ? 50 + (sid % 2 ? 30 : -30) : [17, 50, 83][col]) + '%';
+      G.ball.style.top = (S0.miss ? -18 : row === 0 ? 26 : 70) + '%';
+      G.ball.classList.add('shot');
+    }
     return { el };
   }
   function guessAsk(s, st) {
